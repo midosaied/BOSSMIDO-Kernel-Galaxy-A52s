@@ -1,0 +1,98 @@
+#!/sbin/sh
+# BOSSMIDO KERNEL - recovery installer (CrappyKernel-style UI).
+# Repacks the kernel into the boot partition you already have: ramdisk, header and cmdline are kept.
+
+OUTFD=/proc/self/fd/$2
+ZIPFILE="$3"
+WORK=""
+BOOTPART="${BOOTPART_OVERRIDE:-}"
+
+ui_print()     { while [ "$1" ]; do echo "ui_print $1" >> "$OUTFD"; echo "ui_print" >> "$OUTFD"; shift; done; }
+ui_printfile() { unzip -p "$ZIPFILE" "$1" 2>/dev/null | while IFS= read -r l; do ui_print "$l"; done; }
+set_progress() { echo "set_progress $1" >> "$OUTFD"; }
+abort_flash()  { ui_print " "; ui_print "X $1"; ui_print "X Nothing was written to your boot partition."; [ -n "$WORK" ] && rm -rf "$WORK"; exit 1; }
+
+set_progress 0.0
+ui_printfile "banner"
+ui_print " "
+
+# device check (same method as CrappyKernel)
+getprop ro.boot.bootloader | grep -qE "A528" || abort_flash "Unsupported device (needs SM-A528x). Aborting."
+
+# boot partition
+if [ -z "$BOOTPART" ]; then
+  for p in /dev/block/bootdevice/by-name/boot /dev/block/by-name/boot; do
+    [ -e "$p" ] && { BOOTPART="$p"; break; }
+  done
+fi
+[ -n "$BOOTPART" ] && [ -e "$BOOTPART" ] || abort_flash "boot partition not found."
+ui_print "-> boot partition: $BOOTPART"
+
+# work dir (prefer /cache like CrappyKernel, fall back to /tmp)
+mount -o rw,remount -t auto /cache 2>/dev/null
+WORK="/cache/a52kernel"
+mkdir -p "$WORK" 2>/dev/null && [ -w "$WORK" ] || { WORK="/tmp/a52kernel"; mkdir -p "$WORK"; }
+rm -rf "$WORK"/* 2>/dev/null
+
+ui_print "-> Extracting files..."
+unzip -o "$ZIPFILE" "tools/*" "Image.gz" -d "$WORK" >/dev/null 2>&1
+[ -f "$WORK/Image.gz" ] && [ -f "$WORK/tools/magiskboot" ] || abort_flash "zip is incomplete."
+chmod 755 "$WORK"/tools/* 2>/dev/null
+MB="$WORK/tools/magiskboot"
+BB="$WORK/tools/busybox"
+set_progress 0.2
+
+ui_print "-> Reading current boot image..."
+cd "$WORK" || abort_flash "cannot enter work dir."
+dd if="$BOOTPART" of=boot_orig.img bs=4096 2>/dev/null
+[ -s boot_orig.img ] || abort_flash "could not read boot partition."
+
+# keep a copy of the original so you can restore it
+for d in /data/media/0 /sdcard; do
+  if [ -d "$d" ] && [ -w "$d" ]; then
+    cp boot_orig.img "$d/boot_backup_before_a52kernel.img" 2>/dev/null && ui_print "-> Backup saved: $d/boot_backup_before_a52kernel.img" && break
+  fi
+done
+set_progress 0.4
+
+ui_print "-> Unpacking boot image..."
+"$MB" unpack boot_orig.img >/dev/null 2>&1 || abort_flash "magiskboot could not unpack your boot image."
+[ -f kernel ] || abort_flash "no kernel found in boot image."
+
+ui_print "-> Replacing kernel..."
+cp -f Image.gz kernel || abort_flash "could not place new kernel."
+"$MB" repack boot_orig.img boot_new.img >/dev/null 2>&1 || abort_flash "repack failed."
+[ -s boot_new.img ] || abort_flash "repacked image is empty."
+set_progress 0.6
+
+# sanity: new image must fit in the partition and look like a boot image
+NEWSIZE=$("$BB" wc -c < boot_new.img)
+PARTSIZE=$(blockdev --getsize64 "$BOOTPART" 2>/dev/null)
+[ -n "$PARTSIZE" ] && [ "$NEWSIZE" -gt "$PARTSIZE" ] && abort_flash "new boot image ($NEWSIZE) is larger than the partition ($PARTSIZE)."
+[ "$("$BB" head -c 8 boot_new.img)" = "ANDROID!" ] || abort_flash "repacked image has no ANDROID! header."
+
+ui_print "-> Flashing boot.img..."
+dd if=boot_new.img of="$BOOTPART" bs=4096 2>/dev/null || abort_flash "write failed (check your boot partition!)."
+sync
+set_progress 0.9
+
+# verify what was written (uses the busybox from the zip; empty result = failure)
+W=$("$BB" head -c "$NEWSIZE" "$BOOTPART" | "$BB" md5sum | cut -d' ' -f1)
+N=$("$BB" md5sum boot_new.img | cut -d' ' -f1)
+if [ -z "$W" ] || [ -z "$N" ] || [ "$W" != "$N" ]; then
+  ui_print " "
+  ui_print "X VERIFY FAILED. Do NOT reboot; flash your backup boot image."
+  exit 1
+fi
+ui_print "-> Verified OK."
+
+cd /
+rm -rf "$WORK"
+set_progress 1.0
+ui_print " "
+ui_print "=========================================="
+ui_print "  BOSSMIDO KERNEL installed successfully!"
+ui_print "  vendor_boot was NOT touched."
+ui_print "=========================================="
+ui_print " "
+exit 0

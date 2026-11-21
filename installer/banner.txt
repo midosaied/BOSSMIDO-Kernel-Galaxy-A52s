@@ -1,0 +1,6 @@
+==========================================
+   B O S S M I D O   K E R N E L
+   Galaxy A52s 5G (SM-A528B)  -  @VERSION@
+   Linux 5.4.302 + KernelSU-Next
+   build @DATE@
+==========================================

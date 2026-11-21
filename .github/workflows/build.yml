@@ -1,0 +1,222 @@
+name: Build BOSSMIDO KERNEL (a52sxq)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label shown in the installer banner and file names"
+        default: "v1.0"
+      kernel_repo:
+        description: "Kernel source repo (Lineage-based tree for sm7325)"
+        default: "anhdat1024/android_kernel_samsung_sm7325"
+      kernel_branch:
+        description: "Kernel source branch"
+        default: "17.0"
+      ksun_ref:
+        description: "KernelSU-Next commit/branch (must come from the 'legacy' line for manual hooks)"
+        default: "e5f5ec998de88b9fc43c62cff8f7ae12d3f4800a"
+      tweaks:
+        description: "Network tweaks: BBR + fq_codel default"
+        type: boolean
+        default: true
+      disable_userfaultfd:
+        description: "Disable CONFIG_USERFAULTFD (CrappyKernel did; not needed here)"
+        type: boolean
+        default: false
+      usb_extra:
+        description: "Also enable plain USB RNDIS + ECM (not needed: the ROM uses gsi.rndis)"
+        type: boolean
+        default: false
+      wq_power_efficient:
+        description: "EXPERIMENTAL: CONFIG_WQ_POWER_EFFICIENT_DEFAULT (not part of the tested build)"
+        type: boolean
+        default: false
+      allow_abi_change:
+        description: "DANGEROUS: continue even if the ABI guard fails (may bootloop)"
+        type: boolean
+        default: false
+      publish_release:
+        description: "Publish the zips as a GitHub Release"
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag (used only when publish_release is on)"
+        default: "v1.0"
+
+permissions:
+  contents: write   # needed only for publish_release
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Self-tests (ABI guard + tuning module)
+        run: |
+          sh tests/test_abi_check.sh
+          sh tests/test_tuning.sh
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev cpio zip lz4 python3 device-tree-compiler
+
+      - name: Clone kernel
+        run: git clone --depth=1 -b "${{ inputs.kernel_branch }}" "https://github.com/${{ inputs.kernel_repo }}" kernel
+
+      - name: Restore toolchain cache
+        id: clang-cache
+        uses: actions/cache@v4
+        with:
+          path: clang
+          key: proton-clang-v1
+
+      - name: Clone toolchain (Proton clang) and AnyKernel3 tools
+        run: |
+          [ -d clang/bin ] || git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+          rm -rf clang/.git
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 ak3
+
+      - name: Apply patches (manual KernelSU hooks, path_umount backport, Samsung MTP IDs)
+        working-directory: kernel
+        run: git apply --whitespace=nowarn ../patches/ksu-manual-hooks-5.4.302.patch
+
+      - name: Add KernelSU-Next
+        working-directory: kernel
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/${{ inputs.ksun_ref }}/kernel/setup.sh" | bash -s ${{ inputs.ksun_ref }}
+          REF="${{ inputs.ksun_ref }}"
+          GOT=$(git -C KernelSU-Next rev-parse HEAD)
+          # setup.sh silently falls back to the default branch if the checkout fails -> verify a pinned commit
+          if echo "$REF" | grep -qE '^[0-9a-f]{40}$' && [ "$GOT" != "$REF" ]; then
+            echo "::error::KernelSU-Next is at $GOT but ksun_ref pins $REF"; exit 1
+          fi
+          echo "KSUN_COMMIT=$GOT" >> "$GITHUB_ENV"
+          echo "KERNEL_COMMIT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Configure
+        working-directory: kernel
+        run: |
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          ARGS="O=out ARCH=arm64 LLVM=1 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-"
+          echo "ARGS=$ARGS" >> "$GITHUB_ENV"
+          make $ARGS vendor/lineage-a52sxq_defconfig
+          # KernelSU-Next with manual hooks, no SUSFS
+          scripts/config --file out/.config -e KSU -e KSU_MANUAL_HOOK -d KSU_SUSFS -d KSU_KPROBES_HOOK
+          if [ "${{ inputs.disable_userfaultfd }}" = "true" ]; then scripts/config --file out/.config -d USERFAULTFD; fi
+          if [ "${{ inputs.tweaks }}" = "true" ]; then
+            # Network: BBR congestion control (default was BIC) + fq_codel default qdisc (was pfifo_fast)
+            scripts/config --file out/.config -e TCP_CONG_ADVANCED -e TCP_CONG_BBR -d DEFAULT_BIC -e DEFAULT_BBR \
+              -e NET_SCH_FQ -e NET_SCH_FQ_CODEL -e NET_SCH_DEFAULT -e DEFAULT_FQ_CODEL
+          fi
+          # Extras: CAKE, TTL/HL targets, Samsung MTP VID/PID.
+          # NOTE: IFB is intentionally NOT enabled: it selects NET_REDIRECT, which changes struct sk_buff
+          # and breaks the CRCs of the prebuilt vendor modules (Wi-Fi etc. fail to load -> bootloop).
+          scripts/config --file out/.config -e NET_SCH_CAKE -e NETFILTER_XT_TARGET_HL -e IP_NF_TARGET_TTL -e IP6_NF_TARGET_HL \
+            -e USB_CONFIGFS_SAMSUNG_VIDPID
+          if [ "${{ inputs.wq_power_efficient }}" = "true" ]; then scripts/config --file out/.config -e WQ_POWER_EFFICIENT_DEFAULT; fi
+          if [ "${{ inputs.usb_extra }}" = "true" ]; then scripts/config --file out/.config -e USB_CONFIGFS_RNDIS -e USB_CONFIGFS_ECM; fi
+          make $ARGS olddefconfig
+          echo "--- resulting options ---"
+          grep -E "CONFIG_KSU|USERFAULTFD|DEFAULT_TCP_CONG|TCP_CONG_BBR|DEFAULT_NET_SCH|NET_SCH_FQ|NET_SCH_CAKE|NET_REDIRECT|TARGET_HL|TARGET_TTL|WQ_POWER_EFFICIENT_DEFAULT|USB_CONFIGFS_(RNDIS|ECM|SAMSUNG)" out/.config
+
+      - name: Build
+        working-directory: kernel
+        run: |
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          set +e
+          make $ARGS -j"$(nproc)" Image.gz dtbs > build.log 2>&1
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "=== FIRST ERRORS ==="
+            grep -nE "error:|Error [0-9]|undefined|No rule|fatal" build.log | head -30
+            echo "=== CONTEXT ==="
+            grep -n -m1 -B15 -A5 -E "error:|No rule|undefined" build.log
+            exit 1
+          fi
+          ls -la out/arch/arm64/boot/
+
+      - name: ABI guard (protects against bootloops from prebuilt vendor modules)
+        run: |
+          SYMVERS=kernel/out/Module.symvers
+          mkdir -p abi-out
+          if [ ! -f "$SYMVERS" ]; then
+            echo "::warning::Module.symvers not found; ABI guard skipped"
+            exit 0
+          fi
+          python3 tools/abi_check.py extract "$SYMVERS" abi-out/baseline.candidate.symvers.gz
+          if [ -f abi/baseline.symvers.gz ]; then
+            if python3 tools/abi_check.py check "$SYMVERS" abi/baseline.symvers.gz --report abi-out/abi-report.txt; then
+              echo "ABI guard passed"
+            elif [ "${{ inputs.allow_abi_change }}" = "true" ]; then
+              echo "::warning::ABI guard FAILED but allow_abi_change is on - continuing (bootloop risk)"
+            else
+              echo "::error::ABI guard failed. See abi-report.txt in the 'abi-files' artifact."
+              exit 1
+            fi
+          else
+            echo "::warning::No abi/baseline.symvers.gz in the repo yet. Download 'baseline.candidate.symvers.gz' from the 'abi-files' artifact, rename it to abi/baseline.symvers.gz and commit it AFTER you confirmed this build boots fine."
+          fi
+
+      - name: Upload ABI files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-files
+          path: abi-out/
+          if-no-files-found: ignore
+
+      - name: Package flashable zip (recovery, CrappyKernel style)
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          NAME="BOSSMIDO-KERNEL-${VERSION}-a52sxq-${DATE}"
+          mkdir -p pkg/META-INF/com/google/android pkg/tools dist
+          cp kernel/out/arch/arm64/boot/Image.gz pkg/Image.gz
+          cp ak3/tools/magiskboot ak3/tools/busybox pkg/tools/
+          cp installer/update-binary pkg/META-INF/com/google/android/update-binary
+          echo "# Dummy file; update-binary is a shell script." > pkg/META-INF/com/google/android/updater-script
+          sed -e "s/@VERSION@/${VERSION}/" -e "s/@DATE@/${DATE}/" installer/banner.txt > pkg/banner
+          KREL=$(strings -n 8 kernel/out/arch/arm64/boot/Image 2>/dev/null | grep -m1 "Linux version" || true)
+          {
+            echo "BOSSMIDO KERNEL ${VERSION}"
+            echo "date          : ${DATE}"
+            echo "kernel source : ${{ inputs.kernel_repo }} @ ${{ inputs.kernel_branch }} (${KERNEL_COMMIT})"
+            echo "KernelSU-Next : ${KSUN_COMMIT}"
+            echo "options       : tweaks=${{ inputs.tweaks }} userfaultfd_disabled=${{ inputs.disable_userfaultfd }} usb_extra=${{ inputs.usb_extra }} wq_power_efficient=${{ inputs.wq_power_efficient }}"
+            echo "${KREL}"
+          } > pkg/build-info.txt
+          chmod 755 pkg/META-INF/com/google/android/update-binary pkg/tools/*
+          cat pkg/build-info.txt
+          (cd pkg && zip -qr9 "../dist/${NAME}.zip" .)
+          # KernelSU module (optional tuning)
+          (cd module/bossmido_tuning && zip -qr9 "../../dist/BOSSMIDO-Tuning-${VERSION}.zip" .)
+          (cd dist && sha256sum *.zip > SHA256SUMS && cat SHA256SUMS)
+          echo "ZIP_NAME=${NAME}" >> "$GITHUB_ENV"
+
+      # The artifact is the flashable zip's content: downloading it from the Actions page gives a zip you can flash.
+      - name: Upload kernel (flashable on download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ZIP_NAME }}
+          path: pkg/
+
+      - name: Upload tuning module
+        uses: actions/upload-artifact@v4
+        with:
+          name: BOSSMIDO-Tuning-${{ inputs.version }}
+          path: module/bossmido_tuning/
+
+      - name: Publish release
+        if: ${{ inputs.publish_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: BOSSMIDO KERNEL ${{ inputs.version }}
+          files: dist/*
+          body: |
+            BOSSMIDO KERNEL ${{ inputs.version }} for Galaxy A52s 5G (SM-A528B).
+            Flash `BOSSMIDO-KERNEL-*.zip` from recovery. Optional: install `BOSSMIDO-Tuning-*.zip` from KernelSU-Next.
+            Read the README (backup your boot partition first). Verify with `SHA256SUMS`.

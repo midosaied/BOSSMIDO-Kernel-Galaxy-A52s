@@ -1,0 +1,257 @@
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -78,6 +78,11 @@
+ #include <linux/defex.h>
+ #endif
+ 
++#ifdef CONFIG_KSU
++extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
++			       void *envp, int *flags);
++#endif
++
+ int suid_dumpable = 0;
+ 
+ static LIST_HEAD(formats);
+@@ -1937,6 +1942,9 @@
+ 			      struct user_arg_ptr envp,
+ 			      int flags)
+ {
++#ifdef CONFIG_KSU
++	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
++#endif
+ 	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
+ }
+ 
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -39,6 +39,11 @@
+ #include <linux/defex.h>
+ #endif
+ 
++#ifdef CONFIG_KSU
++extern int ksu_handle_faccessat(int *dfd, const char __user **filename_user,
++				int *mode, int *flags);
++#endif
++
+ int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
+ 	struct file *filp)
+ {
+@@ -358,6 +363,10 @@
+ 	int res;
+ 	unsigned int lookup_flags = LOOKUP_FOLLOW;
+ 
++#ifdef CONFIG_KSU
++	ksu_handle_faccessat(&dfd, &filename, &mode, NULL);
++#endif
++
+ 	if (mode & ~S_IRWXO)	/* where's F_OK, X_OK, W_OK, R_OK? */
+ 		return -EINVAL;
+ 
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -21,6 +21,11 @@
+ #include <linux/uaccess.h>
+ #include <asm/unistd.h>
+ 
++#ifdef CONFIG_KSU
++extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
++extern void ksu_handle_newfstat_ret(unsigned int *fd, struct stat __user **statbuf_ptr);
++#endif
++
+ /**
+  * generic_fillattr - Fill in the basic attributes from the inode struct
+  * @inode: Inode to use as the source
+@@ -172,6 +177,10 @@
+ 	int error = -EINVAL;
+ 	unsigned int lookup_flags = LOOKUP_FOLLOW | LOOKUP_AUTOMOUNT;
+ 
++#ifdef CONFIG_KSU
++	ksu_handle_stat(&dfd, &filename, &flags);
++#endif
++
+ 	if ((flags & ~(AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT |
+ 		       AT_EMPTY_PATH | KSTAT_QUERY_FLAGS)) != 0)
+ 		return -EINVAL;
+@@ -379,6 +388,9 @@
+ 	if (!error)
+ 		error = cp_new_stat(&stat, statbuf);
+ 
++#ifdef CONFIG_KSU
++	ksu_handle_newfstat_ret(&fd, &statbuf);
++#endif
+ 	return error;
+ }
+ #endif
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -32,6 +32,11 @@
+ #include <linux/fscrypto_sdp_cache.h>
+ #endif
+ 
++#ifdef CONFIG_KSU
++extern int ksu_handle_vfs_read(struct file **file_ptr, char __user **buf_ptr,
++			       size_t *count_ptr, loff_t **pos);
++#endif
++
+ const struct file_operations generic_ro_fops = {
+ 	.llseek		= generic_file_llseek,
+ 	.read_iter	= generic_file_read_iter,
+@@ -454,6 +459,10 @@
+ {
+ 	ssize_t ret;
+ 
++#ifdef CONFIG_KSU
++	ksu_handle_vfs_read(&file, &buf, &count, &pos);
++#endif
++
+ 	if (!(file->f_mode & FMODE_READ))
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_READ))
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -1956,6 +1956,41 @@
+ #include <linux/io_record.h>
+ #endif
+ 
++#ifdef CONFIG_KSU
++/* backport of path_umount() for KernelSU (not present in 5.4) */
++static int can_umount(const struct path *path, int flags)
++{
++	struct mount *mnt = real_mount(path->mnt);
++
++	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
++		return -EINVAL;
++	if (!may_mount())
++		return -EPERM;
++	if (path->dentry != path->mnt->mnt_root)
++		return -EINVAL;
++	if (!check_mnt(mnt))
++		return -EINVAL;
++	if (mnt->mnt.mnt_flags & MNT_LOCKED)
++		return -EINVAL;
++	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
++		return -EPERM;
++	return 0;
++}
++
++int path_umount(struct path *path, int flags)
++{
++	struct mount *mnt = real_mount(path->mnt);
++	int ret;
++
++	ret = can_umount(path, flags);
++	if (!ret)
++		ret = do_umount(mnt, flags);
++	dput(path->dentry);
++	mntput_no_expire(mnt);
++	return ret;
++}
++#endif
++
+ int ksys_umount(char __user *name, int flags)
+ {
+ 	struct path path;
+--- a/fs/internal.h
++++ b/fs/internal.h
+@@ -93,6 +93,9 @@
+ extern int sb_prepare_remount_readonly(struct super_block *);
+ 
+ extern void __init mnt_init(void);
++#ifdef CONFIG_KSU
++int path_umount(struct path *path, int flags);
++#endif
+ 
+ extern int __mnt_want_write_file(struct file *);
+ extern void __mnt_drop_write_file(struct file *);
+--- a/kernel/reboot.c
++++ b/kernel/reboot.c
+@@ -18,6 +18,11 @@
+ #include <linux/syscore_ops.h>
+ #include <linux/uaccess.h>
+ 
++#ifdef CONFIG_KSU
++extern int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
++				 void __user **arg);
++#endif
++
+ /*
+  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
+  */
+@@ -322,6 +327,10 @@
+ 	char buffer[256];
+ 	int ret = 0;
+ 
++#ifdef CONFIG_KSU
++	ksu_handle_sys_reboot(magic1, magic2, cmd, &arg);
++#endif
++
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!ns_capable(pid_ns->user_ns, CAP_SYS_BOOT))
+ 		return -EPERM;
+--- a/drivers/input/input.c
++++ b/drivers/input/input.c
+@@ -26,6 +26,10 @@
+ #include "input-compat.h"
+ #include "input-poller.h"
+ 
++#ifdef CONFIG_KSU
++extern int ksu_handle_input_handle_event(unsigned int *type, unsigned int *code, int *value);
++#endif
++
+ MODULE_AUTHOR("Vojtech Pavlik <vojtech@suse.cz>");
+ MODULE_DESCRIPTION("Input core");
+ MODULE_LICENSE("GPL");
+@@ -378,7 +382,12 @@
+ static void input_handle_event(struct input_dev *dev,
+ 			       unsigned int type, unsigned int code, int value)
+ {
+-	int disposition = input_get_disposition(dev, type, code, &value);
++	int disposition;
++
++#ifdef CONFIG_KSU
++	ksu_handle_input_handle_event(&type, &code, &value);
++#endif
++	disposition = input_get_disposition(dev, type, code, &value);
+ 
+ 	if (disposition != INPUT_IGNORE_EVENT && type != EV_SYN)
+ 		add_input_randomness(type, code, value);
+--- a/drivers/usb/gadget/configfs.c
++++ b/drivers/usb/gadget/configfs.c
+@@ -1450,6 +1450,21 @@
+ 		gi->cdev.desc.iSerialNumber = s[USB_GADGET_SERIAL_IDX].id;
+ 	}
+ 
++#ifdef CONFIG_USB_CONFIGFS_SAMSUNG_VIDPID
++	/*
++	 * Present the stock AOSP ids (18d1:4ee1 mtp, 4ee2 mtp+adb, 4ee7 adb)
++	 * as the Samsung ids (04e8:6860) so the Samsung Windows driver binds.
++	 * Applied on every UDC bind; all other ids are left untouched.
++	 */
++	if (le16_to_cpu(gi->cdev.desc.idVendor) == 0x18d1 &&
++	    (le16_to_cpu(gi->cdev.desc.idProduct) == 0x4ee1 ||
++	     le16_to_cpu(gi->cdev.desc.idProduct) == 0x4ee2 ||
++	     le16_to_cpu(gi->cdev.desc.idProduct) == 0x4ee7)) {
++		gi->cdev.desc.idVendor = cpu_to_le16(0x04e8);
++		gi->cdev.desc.idProduct = cpu_to_le16(0x6860);
++	}
++#endif
++
+ 	if (gi->use_os_desc) {
+ 		cdev->use_os_string = true;
+ 		cdev->b_vendor_code = gi->b_vendor_code;
+--- a/drivers/usb/gadget/Kconfig
++++ b/drivers/usb/gadget/Kconfig
+@@ -326,6 +326,13 @@
+ 	  grouping of several ethernet frames into one USB transfer and
+ 	  different alignment possibilities.
+ 
++config USB_CONFIGFS_SAMSUNG_VIDPID
++	bool "Report Samsung MTP VID/PID (04e8:6860) for AOSP MTP ids"
++	depends on USB_CONFIGFS
++	help
++	  Rewrites 18d1:4ee1, 18d1:4ee2 and 18d1:4ee7 to 04e8:6860 when the gadget is
++	  bound, so the Samsung USB driver on Windows recognizes the phone.
++
+ config USB_CONFIGFS_ECM
+ 	bool "Ethernet Control Model (CDC ECM)"
+ 	depends on USB_CONFIGFS
