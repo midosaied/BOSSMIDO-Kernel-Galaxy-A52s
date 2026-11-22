@@ -1,15 +1,15 @@
-<div align="center">
+﻿<div align="center">
 
-<img src="assets/banner.png" alt="Shadow Nexus Kernel" width="100%">
+<img src="assets/shadow-nexus-banner.png" alt="Shadow Nexus Kernel" width="100%">
 
 # Shadow Nexus Kernel
 
-**SNK v1.0 · Codename OBSIDIAN · by Shadow Engineering**
+**SNK v1.0 Â· Codename OBSIDIAN Â· by Shadow Engineering**
 
 **A KernelSU-Next ready Linux 5.4 kernel for the Samsung Galaxy A52s 5G (`a52sxq`)**
 with working Zygisk Next + Vector, BBR/CAKE networking, TTL/HL tools and a recovery-flashable zip.
 
-[English](README.md) · [العربية](README.ar.md)
+[English](README.md) Â· [Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©](README.ar.md)
 
 </div>
 
