@@ -12,4 +12,4 @@
 | A game crashes at launch | Usually app-side detection or ROM issues | Test on stock boot first; if it crashes there too it is not the kernel |
 | Phone did not boot for several minutes after flash | First boot after a repack can be slow | Wait; if still nothing, hold power + volume down into recovery and restore |
 
-Useful logs: `dmesg`, `logcat -b crash`, `/data/local/tmp/bossmido_tuning.log`.
+Useful logs: `dmesg`, `logcat -b crash`, `/data/local/tmp/shadownexus_tuning.log`.

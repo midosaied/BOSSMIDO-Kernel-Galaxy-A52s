@@ -5,7 +5,7 @@ All building is done by GitHub Actions: `.github/workflows/build.yml`.
 ## Run it
 
 1. Fork this repository.
-2. **Actions -> Build BOSSMIDO KERNEL (a52sxq) -> Run workflow**.
+2. **Actions -> Build Shadow Nexus Kernel (a52sxq) -> Run workflow**.
 3. Fill the inputs (defaults are the tested configuration):
 
 | Input | Default | Meaning |
@@ -20,7 +20,7 @@ All building is done by GitHub Actions: `.github/workflows/build.yml`.
 | `allow_abi_change` | `false` | Let the build pass even if the ABI guard fails (do not flash such a build blindly) |
 | `publish_release` / `release_tag` | `false` | Publish a GitHub Release with the zips |
 
-4. Download artifacts: the flashable kernel zip content, `BOSSMIDO-Tuning-<ver>.zip`, `SHA256SUMS`, and `abi-files`.
+4. Download artifacts: the flashable kernel zip content, `ShadowNexus-Tuning-<ver>.zip`, `SHA256SUMS`, and `abi-files`.
 
 ## What the workflow does
 

@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="BOSSMIDO KERNEL" width="100%">
+<img src="assets/banner.png" alt="Shadow Nexus Kernel" width="100%">
 
-# BOSSMIDO KERNEL
+# Shadow Nexus Kernel
+
+**SNK v1.0 · Codename OBSIDIAN · by Shadow Engineering**
 
 **A KernelSU-Next ready Linux 5.4 kernel for the Samsung Galaxy A52s 5G (`a52sxq`)**
 with working Zygisk Next + Vector, BBR/CAKE networking, TTL/HL tools and a recovery-flashable zip.
@@ -13,9 +15,21 @@ with working Zygisk Next + Vector, BBR/CAKE networking, TTL/HL tools and a recov
 
 ---
 
+## Identity
+
+| | |
+|---|---|
+| Brand | SHADOW NEXUS |
+| Kernel | Shadow Nexus Kernel (SNK v1.0, codename OBSIDIAN) |
+| Developer | Shadow Engineering |
+| Repository | `shadow-nexus-kernel-a52s` |
+| Flashable ZIP | `ShadowNexus-A528B-v1.0.zip` |
+
+The banner slogans are branding, not measurements: see the status table below for what is actually verified. The kernel release string (`uname -r`) is intentionally **not** renamed: vendor modules check it (vermagic) and would refuse to load.
+
 ## What is this?
 
-BOSSMIDO KERNEL is a build recipe + patch set + CI workflow (not a fork of the whole kernel tree) that produces a flashable kernel for the **Galaxy A52s 5G (SM-A528B)** on a LineageOS-based ROM.
+Shadow Nexus Kernel is a build recipe + patch set + CI workflow (not a fork of the whole kernel tree) that produces a flashable kernel for the **Galaxy A52s 5G (SM-A528B)** on a LineageOS-based ROM.
 
 The main problem it solves: with the usual KernelSU-Next **kprobes** hooking, boot-stage module execution did not work on this device/kernel, so Zygisk Next and Vector (Xposed) never started after a reboot. Building with **manual hooks** fixed it.
 
@@ -29,7 +43,7 @@ The main problem it solves: with the usual KernelSU-Next **kprobes** hooking, bo
 | `TTL` / `HL` iptables targets | Change TTL/hop-limit for tethering |
 | Samsung USB VID/PID option | Replaces the generic Google ADB IDs with Samsung's at UDC bind (MTP/ADB friendlier on PCs) |
 | ABI guard | CI refuses a build whose exported symbol CRCs differ from a known-good baseline (protects vendor modules) |
-| `bossmido_tuning` module | Optional, safe, best-effort runtime tuning (read-ahead etc.) |
+| `shadownexus_tuning` module | Optional, safe, best-effort runtime tuning (read-ahead etc.) |
 | Recovery installer | Repacks your **existing** boot image, makes a backup first, verifies the write |
 
 ## Status: what is verified and what is not
@@ -56,14 +70,14 @@ The main problem it solves: with the usual KernelSU-Next **kprobes** hooking, bo
 ## Install (short version)
 
 1. **Back up your current boot image** (the installer also does, but keep your own copy).
-2. Download the latest `BOSSMIDO-KERNEL-*.zip` from Releases/Actions.
+2. Download the latest `ShadowNexus-A528B-*.zip` from Releases/Actions.
 3. Reboot to custom recovery, flash the zip, reboot.
 
 Details and recovery steps: [docs/INSTALL.md](docs/INSTALL.md).
 
 ## Build it yourself
 
-Fork this repo, open **Actions -> Build BOSSMIDO KERNEL (a52sxq) -> Run workflow**. See [docs/BUILDING.md](docs/BUILDING.md).
+Fork this repo, open **Actions -> Build Shadow Nexus Kernel (a52sxq) -> Run workflow**. See [docs/BUILDING.md](docs/BUILDING.md).
 
 ## Documentation
 

@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="BOSSMIDO KERNEL" width="100%">
+<img src="assets/banner.png" alt="Shadow Nexus Kernel" width="100%">
 
-# BOSSMIDO KERNEL
+# Shadow Nexus Kernel
+
+**SNK v1.0 · الاسم الكودي OBSIDIAN · من Shadow Engineering**
 
 **كيرنال لينكس 5.4 جاهز لـ KernelSU-Next لموبايل Samsung Galaxy A52s 5G (`a52sxq`)**
 مع Zygisk Next + Vector شغالين، وشبكة BBR/CAKE، وأدوات TTL/HL، وزيب يتفلّش من الريكفري.
@@ -15,9 +17,21 @@
 
 ---
 
+## الهوية
+
+| | |
+|---|---|
+| العلامة | SHADOW NEXUS |
+| الكيرنال | Shadow Nexus Kernel (SNK v1.0، الاسم الكودي OBSIDIAN) |
+| المطوّر | Shadow Engineering |
+| الريبو | `shadow-nexus-kernel-a52s` |
+| الزيب | `ShadowNexus-A528B-v1.0.zip` |
+
+شعارات البانر دعاية مش قياسات: شوف جدول الحالة تحت لمعرفة اللي اتأكد فعلاً. اسم إصدار الكيرنال (`uname -r`) **ماتغيّرش عمداً**: موديولات الفيندور بتتحقق منه (vermagic) وهترفض تتحمّل لو اتغيّر.
+
 ## ده إيه؟
 
-BOSSMIDO KERNEL عبارة عن وصفة بناء + باتشات + CI workflow (مش نسخة كاملة من سورس الكيرنال) بتطلّع كيرنال قابل للتفليش لجهاز **Galaxy A52s 5G (SM-A528B)** على روم مبني على LineageOS.
+Shadow Nexus Kernel عبارة عن وصفة بناء + باتشات + CI workflow (مش نسخة كاملة من سورس الكيرنال) بتطلّع كيرنال قابل للتفليش لجهاز **Galaxy A52s 5G (SM-A528B)** على روم مبني على LineageOS.
 
 المشكلة الأساسية اللي بيحلها: مع الطريقة المعتادة في KernelSU-Next (**kprobes**) تشغيل الموديولات في مرحلة البوت ماكانش بيشتغل على الجهاز ده، فـ Zygisk Next و Vector (Xposed) مكانوش بيشتغلوا بعد الريبوت. البناء بـ **manual hooks** حلّ المشكلة.
 
@@ -31,7 +45,7 @@ BOSSMIDO KERNEL عبارة عن وصفة بناء + باتشات + CI workflow (
 | أهداف `TTL` / `HL` في iptables | تغيير TTL/hop-limit للـ tethering |
 | خيار Samsung USB VID/PID | استبدال معرّفات Google العامة بمعرّفات سامسونج وقت ربط الـ UDC |
 | ABI guard | الـ CI يرفض أي بناء بتتغير فيه CRC للـ symbols المصدّرة عن baseline سليم (يحمي موديولات الفيندور) |
-| موديول `bossmido_tuning` | تظبيطات تشغيل اختيارية وآمنة (read-ahead وغيره) |
+| موديول `shadownexus_tuning` | تظبيطات تشغيل اختيارية وآمنة (read-ahead وغيره) |
 | مثبّت الريكفري | بيعيد تغليف الـ boot الحالي بتاعك، وبيعمل باك أب قبل الكتابة، وبيتحقق بعدها |
 
 ## الحالة: إيه اللي اتجرّب وإيه اللي لأ
@@ -58,14 +72,14 @@ BOSSMIDO KERNEL عبارة عن وصفة بناء + باتشات + CI workflow (
 ## التثبيت (مختصر)
 
 1. **خد نسخة احتياطية من الـ boot الحالي** (المثبّت بيعمل برضو بس احتفظ بنسختك).
-2. نزّل أحدث `BOSSMIDO-KERNEL-*.zip` من Releases/Actions.
+2. نزّل أحدث `ShadowNexus-A528B-*.zip` من Releases/Actions.
 3. ادخل ريكفري مخصص، فلّش الزيب، وأعمل ريبوت.
 
 التفاصيل: [docs/INSTALL.md](docs/INSTALL.md).
 
 ## ابنيه بنفسك
 
-اعمل Fork للريبو، وافتح **Actions ← Build BOSSMIDO KERNEL (a52sxq) ← Run workflow**. التفاصيل: [docs/BUILDING.md](docs/BUILDING.md).
+اعمل Fork للريبو، وافتح **Actions ← Build Shadow Nexus Kernel (a52sxq) ← Run workflow**. التفاصيل: [docs/BUILDING.md](docs/BUILDING.md).
 
 ## التوثيق
 

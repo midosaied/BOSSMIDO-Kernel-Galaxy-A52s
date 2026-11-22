@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BOSSMIDO KERNEL - ABI guard.
+"""Shadow Nexus Kernel - ABI guard.
 
 Vendor kernel modules (Wi-Fi, camera, audio, ...) are prebuilt against a specific
 kernel ABI. With CONFIG_MODVERSIONS every exported symbol carries a CRC computed
@@ -41,7 +41,7 @@ def cmd_extract(args):
         print("ERROR: no symbols found in %s" % args.symvers, file=sys.stderr)
         return 2
     with gzip.open(args.baseline, "wt", encoding="utf-8") as fh:
-        fh.write("# BOSSMIDO KERNEL ABI baseline: <crc> <symbol>\n")
+        fh.write("# Shadow Nexus Kernel ABI baseline: <crc> <symbol>\n")
         for name in sorted(syms):
             fh.write("%s\t%s\n" % (syms[name], name))
     print("baseline written: %d symbols -> %s" % (len(syms), args.baseline))

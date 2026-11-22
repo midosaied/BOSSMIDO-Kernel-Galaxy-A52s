@@ -13,7 +13,7 @@ dd if=/dev/block/bootdevice/by-name/boot of=/sdcard/my_boot_backup.img
 
 ## Flash
 
-1. Download `BOSSMIDO-KERNEL-<version>-a52sxq-<date>.zip` (Releases, or the workflow artifact; if you got an artifact zip, unzip once so you flash the inner zip's content as a zip).
+1. Download `ShadowNexus-A528B-<version>.zip` (Releases, or the workflow artifact; if you got an artifact zip, unzip once so you flash the inner zip's content as a zip).
 2. Boot to recovery -> Install -> select the zip.
 3. The installer prints the banner, checks the model, backs up boot to `/data/media/0/boot_backup_before_a52kernel.img`, writes, and verifies.
 4. Reboot system.

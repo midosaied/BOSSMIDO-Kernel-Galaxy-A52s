@@ -1,5 +1,5 @@
 #!/sbin/sh
-# BOSSMIDO KERNEL - recovery installer (CrappyKernel-style UI).
+# Shadow Nexus Kernel - recovery installer (CrappyKernel-style UI).
 # Repacks the kernel into the boot partition you already have: ramdisk, header and cmdline are kept.
 
 OUTFD=/proc/self/fd/$2
@@ -91,7 +91,7 @@ rm -rf "$WORK"
 set_progress 1.0
 ui_print " "
 ui_print "=========================================="
-ui_print "  BOSSMIDO KERNEL installed successfully!"
+ui_print "  SHADOW NEXUS KERNEL installed successfully!"
 ui_print "  vendor_boot was NOT touched."
 ui_print "=========================================="
 ui_print " "

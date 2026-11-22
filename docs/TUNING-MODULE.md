@@ -1,16 +1,16 @@
-# bossmido_tuning (KernelSU module)
+# shadownexus_tuning (KernelSU module)
 
 **Status: verified on one device (Galaxy A52s 5G).** With the default config it raised `read_ahead_kb` from 128 to 512 on `sda`-`sdf`, with no errors. The swappiness, VFS pressure and zram options are empty by default and have **not** been tested on a device. No performance claims are made.
 
-Install `BOSSMIDO-Tuning-<ver>.zip` from the KernelSU-Next manager (Modules -> Install from storage).
+Install `ShadowNexus-Tuning-<ver>.zip` from the KernelSU-Next manager (Modules -> Install from storage).
 
 ## What it does
 
-After `sys.boot_completed`, `service.sh` writes best-effort values (failures are logged, never fatal) to `/data/local/tmp/bossmido_tuning.log`.
+After `sys.boot_completed`, `service.sh` writes best-effort values (failures are logged, never fatal) to `/data/local/tmp/shadownexus_tuning.log`.
 
 ## Configuration
 
-Default `tuning.conf` ships in the module. To customise, copy it to `/data/adb/bossmido/tuning.conf`.
+Default `tuning.conf` ships in the module. To customise, copy it to `/data/adb/shadownexus/tuning.conf`.
 
 | Key | Default | Effect |
 |---|---|---|

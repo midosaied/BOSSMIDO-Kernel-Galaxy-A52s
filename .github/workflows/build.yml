@@ -1,4 +1,4 @@
-name: Build BOSSMIDO KERNEL (a52sxq)
+name: Build Shadow Nexus Kernel (a52sxq)
 
 on:
   workflow_dispatch:
@@ -183,7 +183,7 @@ jobs:
       - name: Package flashable zip (recovery, CrappyKernel style)
         run: |
           DATE=$(date -u +%Y-%m-%d)
-          NAME="BOSSMIDO-KERNEL-${VERSION}-a52sxq-${DATE}"
+          NAME="ShadowNexus-A528B-${VERSION}"
           mkdir -p pkg/META-INF/com/google/android pkg/tools dist
           cp kernel/out/arch/arm64/boot/Image.gz pkg/Image.gz
           cp ak3/tools/magiskboot ak3/tools/busybox pkg/tools/
@@ -192,7 +192,7 @@ jobs:
           sed -e "s/@VERSION@/${VERSION}/" -e "s/@DATE@/${DATE}/" installer/banner.txt > pkg/banner
           KREL=$(strings -n 8 kernel/out/arch/arm64/boot/Image 2>/dev/null | grep -m1 "Linux version" || true)
           {
-            echo "BOSSMIDO KERNEL ${VERSION}"
+            echo "Shadow Nexus Kernel ${VERSION}"
             echo "date          : ${DATE}"
             echo "kernel source : ${{ inputs.kernel_repo }} @ ${{ inputs.kernel_branch }} (${KERNEL_COMMIT})"
             echo "KernelSU-Next : ${KSUN_COMMIT}"
@@ -203,7 +203,7 @@ jobs:
           cat pkg/build-info.txt
           (cd pkg && zip -qr9 "../dist/${NAME}.zip" .)
           # KernelSU module (optional tuning)
-          (cd module/bossmido_tuning && zip -qr9 "../../dist/BOSSMIDO-Tuning-${VERSION}.zip" .)
+          (cd module/shadownexus_tuning && zip -qr9 "../../dist/ShadowNexus-Tuning-${VERSION}.zip" .)
           (cd dist && sha256sum *.zip > SHA256SUMS && cat SHA256SUMS)
           echo "ZIP_NAME=${NAME}" >> "$GITHUB_ENV"
 
@@ -217,17 +217,17 @@ jobs:
       - name: Upload tuning module
         uses: actions/upload-artifact@v4
         with:
-          name: BOSSMIDO-Tuning-${{ inputs.version }}
-          path: module/bossmido_tuning/
+          name: ShadowNexus-Tuning-${{ inputs.version }}
+          path: module/shadownexus_tuning/
 
       - name: Publish release
         if: ${{ inputs.publish_release }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag }}
-          name: BOSSMIDO KERNEL ${{ inputs.version }}
+          name: Shadow Nexus Kernel ${{ inputs.version }}
           files: dist/*
           body: |
-            BOSSMIDO KERNEL ${{ inputs.version }} for Galaxy A52s 5G (SM-A528B).
-            Flash `BOSSMIDO-KERNEL-*.zip` from recovery. Optional: install `BOSSMIDO-Tuning-*.zip` from KernelSU-Next.
+            Shadow Nexus Kernel ${{ inputs.version }} for Galaxy A52s 5G (SM-A528B).
+            Flash `ShadowNexus-A528B-*.zip` from recovery. Optional: install `ShadowNexus-Tuning-*.zip` from KernelSU-Next.
             Read the README (backup your boot partition first). Verify with `SHA256SUMS`.

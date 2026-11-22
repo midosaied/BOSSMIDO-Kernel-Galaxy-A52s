@@ -1,8 +1,8 @@
 #!/bin/sh
-# Self-test for module/bossmido_tuning/service.sh against a fake /sys and /proc tree.
+# Self-test for module/shadownexus_tuning/service.sh against a fake /sys and /proc tree.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
-svc="$here/../module/bossmido_tuning/service.sh"
+svc="$here/../module/shadownexus_tuning/service.sh"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
 mkfake() {
@@ -18,7 +18,7 @@ mkfake() {
   printf '#!/bin/sh\necho 1\n' > "$tmp/bin/getprop"; chmod +x "$tmp/bin/getprop"
   : > "$tmp/cmds"
 }
-run() { PATH="$tmp/bin:$PATH" BOSSMIDO_ROOT="$tmp/root" BOSSMIDO_CONF="$tmp/conf" BOSSMIDO_LOG="$tmp/log" BOSSMIDO_WAIT=0 sh "$svc"; }
+run() { PATH="$tmp/bin:$PATH" SHADOWNEXUS_ROOT="$tmp/root" SHADOWNEXUS_CONF="$tmp/conf" SHADOWNEXUS_LOG="$tmp/log" SHADOWNEXUS_WAIT=0 sh "$svc"; }
 val() { cat "$tmp/root/$1"; }
 fail() { echo "FAIL: $1"; cat "$tmp/log"; exit 1; }
 

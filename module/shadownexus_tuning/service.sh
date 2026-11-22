@@ -1,13 +1,13 @@
 #!/system/bin/sh
-# BOSSMIDO Tuning - runs once after boot. Conservative by design:
+# Shadow Nexus Tuning - runs once after boot. Conservative by design:
 # only touches settings that have a value in tuning.conf, logs every change,
 # and never aborts the boot (every step is best-effort).
 
 MODDIR=${0%/*}
-ROOT=${BOSSMIDO_ROOT:-}                      # test hook: prefix for /sys and /proc
-CONF=${BOSSMIDO_CONF:-/data/adb/bossmido/tuning.conf}
-LOG=${BOSSMIDO_LOG:-/data/local/tmp/bossmido_tuning.log}
-WAIT=${BOSSMIDO_WAIT:-1}                     # set to 0 in tests
+ROOT=${SHADOWNEXUS_ROOT:-}                      # test hook: prefix for /sys and /proc
+CONF=${SHADOWNEXUS_CONF:-/data/adb/shadownexus/tuning.conf}
+LOG=${SHADOWNEXUS_LOG:-/data/local/tmp/shadownexus_tuning.log}
+WAIT=${SHADOWNEXUS_WAIT:-1}                     # set to 0 in tests
 
 log() { echo "$(date '+%F %T') $*" >> "$LOG"; }
 
@@ -23,7 +23,7 @@ write_val() {
 is_uint() { case "$1" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
 
 : > "$LOG"
-log "BOSSMIDO Tuning start (kernel $(uname -r))"
+log "Shadow Nexus Tuning start (kernel $(uname -r))"
 
 # wait for the system to finish booting (up to ~3 min)
 if [ "$WAIT" = "1" ]; then
