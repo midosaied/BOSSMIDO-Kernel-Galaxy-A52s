@@ -40,10 +40,9 @@ The main problem it solves: with the usual KernelSU-Next **kprobes** hooking, bo
 | Zygisk Next + Vector start after normal reboot | Verified on one device |
 | BBR/CAKE/TTL/HL/USB VID-PID | Verified on one device |
 | Recovery installer | Verified on one device |
-| `abi_check.py` and tuning-module scripts | Unit-tested on fake data only |
-| **Tuning module on a real phone** | **Not yet tested** |
-| **ABI baseline** | **Not shipped yet** (must be exported from a build you have booted) |
-| GitHub workflow as published here | Syntax-checked; first public run pending |
+| GitHub workflow | Ran successfully on GitHub Actions; the resulting build boots on the device |
+| ABI baseline + guard | Baseline exported from a booted build; a second CI run passed with 0 changed / 0 removed / 0 added symbols |
+| Tuning module | Verified on one device: read-ahead 128 -> 512 on `sda`-`sdf`, no errors. Swappiness / VFS pressure / zram options are empty by default and **untested** |
 | Other devices / ROMs / One UI | **Not supported, not tested** |
 | Performance / battery claims | **None made. Not measured.** |
 

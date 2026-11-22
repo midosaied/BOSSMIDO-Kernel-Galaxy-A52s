@@ -1,6 +1,6 @@
 # bossmido_tuning (KernelSU module)
 
-**Status: unit-tested on a fake sysfs only. Not yet tested on a real device.** It makes no performance claims.
+**Status: verified on one device (Galaxy A52s 5G).** With the default config it raised `read_ahead_kb` from 128 to 512 on `sda`-`sdf`, with no errors. The swappiness, VFS pressure and zram options are empty by default and have **not** been tested on a device. No performance claims are made.
 
 Install `BOSSMIDO-Tuning-<ver>.zip` from the KernelSU-Next manager (Modules -> Install from storage).
 
