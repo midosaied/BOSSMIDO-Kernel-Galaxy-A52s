@@ -45,6 +45,7 @@ BOSSMIDO KERNEL عبارة عن وصفة بناء + باتشات + CI workflow (
 | الـ workflow | اشتغل بنجاح على GitHub Actions، والبناء الناتج بيبوّت على الجهاز |
 | ABI baseline + guard | الـ baseline متصدّر من بناء اتجرّب، وتشغيل تاني للـ CI عدّى بدون أي فرق (0 changed / 0 removed / 0 added) |
 | موديول التيونينج | اتجرّب على جهاز واحد: read-ahead من 128 لـ 512 على `sda`-`sdf` بدون أخطاء. خيارات swappiness / VFS / zram فاضية افتراضياً و**ماتجرّبتش** |
+| Multi-Gen LRU (خيار `mglru` الاختياري) | **تجريبي.** الباتش بيتطبق على السورس والملفات المتأثرة بتتكومبايل محلياً؛ **ماتفلّشش، ماتقاسش، وتأثيره على الـ ABI مجهول** |
 | أجهزة / رومات / One UI تانية | **مش مدعومة ومش متجرّبة** |
 | ادعاءات الأداء / البطارية | **مفيش. ماتقاسش.** |
 
@@ -90,6 +91,7 @@ BOSSMIDO KERNEL عبارة عن وصفة بناء + باتشات + CI workflow (
 - [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next): GPL-2.0، بيتحمّل وقت البناء
 - أدوات AnyKernel3 و magiskboot و busybox: بينارى ستاتيك مرفقة للمثبّت بتراخيصها
 - Proton clang: بيتحمّل وقت البناء
+- Multi-Gen LRU (اختياري): مأخوذ من شجرة [ghost_kernel_a52s_5g](https://github.com/Astreele/ghost_kernel_a52s_5g) (GPL-2.0)، والـ MGLRU نفسه من Yu Zhao ومساهمي لينكس
 - CrappyKernel: مرجع لتجربة التفليش فقط
 
 ملفات الريبو نفسها (باتشات، سكريبتات، workflow، توثيق) تحت **GPL-2.0**. اللوجو والبانر تصميم أصلي للمشروع.

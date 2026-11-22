@@ -31,6 +31,10 @@ on:
         description: "EXPERIMENTAL: CONFIG_WQ_POWER_EFFICIENT_DEFAULT (not part of the tested build)"
         type: boolean
         default: false
+      mglru:
+        description: "EXPERIMENTAL: Multi-Gen LRU backport (not device-tested; likely changes the vendor ABI, so the ABI guard may fail)"
+        type: boolean
+        default: false
       allow_abi_change:
         description: "DANGEROUS: continue even if the ABI guard fails (may bootloop)"
         type: boolean
@@ -84,6 +88,12 @@ jobs:
         working-directory: kernel
         run: git apply --whitespace=nowarn ../patches/ksu-manual-hooks-5.4.302.patch
 
+      - name: Apply optional Multi-Gen LRU backport
+        if: ${{ inputs.mglru }}
+        working-directory: kernel
+        # The source tree uses CRLF line endings in many files, hence --ignore-whitespace.
+        run: git apply --ignore-whitespace --whitespace=nowarn ../patches/mglru-backport-5.4.patch
+
       - name: Add KernelSU-Next
         working-directory: kernel
         run: |
@@ -118,6 +128,7 @@ jobs:
           scripts/config --file out/.config -e NET_SCH_CAKE -e NETFILTER_XT_TARGET_HL -e IP_NF_TARGET_TTL -e IP6_NF_TARGET_HL \
             -e USB_CONFIGFS_SAMSUNG_VIDPID
           if [ "${{ inputs.wq_power_efficient }}" = "true" ]; then scripts/config --file out/.config -e WQ_POWER_EFFICIENT_DEFAULT; fi
+          if [ "${{ inputs.mglru }}" = "true" ]; then scripts/config --file out/.config -e LRU_GEN -e LRU_GEN_ENABLED -d LRU_GEN_STATS; fi
           if [ "${{ inputs.usb_extra }}" = "true" ]; then scripts/config --file out/.config -e USB_CONFIGFS_RNDIS -e USB_CONFIGFS_ECM; fi
           make $ARGS olddefconfig
           echo "--- resulting options ---"
@@ -185,7 +196,7 @@ jobs:
             echo "date          : ${DATE}"
             echo "kernel source : ${{ inputs.kernel_repo }} @ ${{ inputs.kernel_branch }} (${KERNEL_COMMIT})"
             echo "KernelSU-Next : ${KSUN_COMMIT}"
-            echo "options       : tweaks=${{ inputs.tweaks }} userfaultfd_disabled=${{ inputs.disable_userfaultfd }} usb_extra=${{ inputs.usb_extra }} wq_power_efficient=${{ inputs.wq_power_efficient }}"
+            echo "options       : tweaks=${{ inputs.tweaks }} userfaultfd_disabled=${{ inputs.disable_userfaultfd }} usb_extra=${{ inputs.usb_extra }} wq_power_efficient=${{ inputs.wq_power_efficient }} mglru=${{ inputs.mglru }}"
             echo "${KREL}"
           } > pkg/build-info.txt
           chmod 755 pkg/META-INF/com/google/android/update-binary pkg/tools/*

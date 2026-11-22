@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Optional `mglru` workflow input (Multi-Gen LRU backport from ghost_kernel_a52s_5g). Experimental, untested on device.
+
 ## v1.0
 
 - KernelSU-Next (legacy) with manual hooks for Linux 5.4.302; `path_umount` backport.

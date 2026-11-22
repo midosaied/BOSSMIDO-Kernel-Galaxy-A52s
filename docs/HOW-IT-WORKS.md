@@ -42,7 +42,13 @@ In `drivers/usb/gadget/configfs.c`, when binding to the UDC, if the gadget's VID
 
 Debug options such as `DEBUG_LIST` would remove/alter `__list_add_valid`, which prebuilt modules import. The CPU governor tweak was dropped because the device already runs `schedutil`.
 
-## 7. Recovery installer
+## 7. Optional: Multi-Gen LRU backport (`mglru` input)
+
+`patches/mglru-backport-5.4.patch` is the single squashed commit (44 files, mostly `mm/vmscan.c`) from the GPL-2.0 ghost_kernel_a52s_5g tree, with docs, x86 and vendor-defconfig hunks removed. Our source tree has CRLF line endings in many files, so it is applied with `git apply --ignore-whitespace` after the KernelSU patch. The workflow then sets `LRU_GEN` and `LRU_GEN_ENABLED`.
+
+Status: the patch applies on top of the KernelSU patch and the touched files compile with clang 18 on a local configuration. It has **not** been booted or benchmarked, and it changes core structures (`mm_struct`, `lruvec`, page-flag layout), so it may change exported-symbol CRCs. The ABI guard decides: if it fails, do not flash that build.
+
+## 8. Recovery installer
 
 `installer/update-binary` (shell, uses bundled static `magiskboot` and `busybox`):
 

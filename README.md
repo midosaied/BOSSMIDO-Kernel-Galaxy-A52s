@@ -43,6 +43,7 @@ The main problem it solves: with the usual KernelSU-Next **kprobes** hooking, bo
 | GitHub workflow | Ran successfully on GitHub Actions; the resulting build boots on the device |
 | ABI baseline + guard | Baseline exported from a booted build; a second CI run passed with 0 changed / 0 removed / 0 added symbols |
 | Tuning module | Verified on one device: read-ahead 128 -> 512 on `sda`-`sdf`, no errors. Swappiness / VFS pressure / zram options are empty by default and **untested** |
+| Multi-Gen LRU (optional `mglru` input) | **Experimental.** Patch applies to the source tree and the touched files compile locally; **never booted, never benchmarked, ABI impact unknown** |
 | Other devices / ROMs / One UI | **Not supported, not tested** |
 | Performance / battery claims | **None made. Not measured.** |
 
@@ -88,6 +89,7 @@ Fork this repo, open **Actions -> Build BOSSMIDO KERNEL (a52sxq) -> Run workflow
 - [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next): GPL-2.0, fetched at build time
 - AnyKernel3 tools, magiskboot, busybox: bundled static binaries used by the installer, under their own licenses
 - Proton clang toolchain: fetched at build time
+- Multi-Gen LRU backport (optional): taken from the GPL-2.0 [ghost_kernel_a52s_5g](https://github.com/Astreele/ghost_kernel_a52s_5g) tree (squashed commit `39289dde`); MGLRU itself is by Yu Zhao and the upstream Linux contributors
 - CrappyKernel: used only as a reference for the recovery-flash experience
 
 This repository's own files (patches, scripts, workflow, docs) are under **GPL-2.0** (see [LICENSE](LICENSE)). Logo and banner are original artwork for this project.
